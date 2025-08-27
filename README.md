@@ -1,4 +1,5 @@
 # Goserver
+[Репозиторий Goserver на GitHub](https://github.com/AndreyCherenkov/golang-server)
 
 Система обработки транзакций платёжной системы, реализованная как HTTP сервер с REST API на Go.
 
