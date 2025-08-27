@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"github.com/google/uuid"
 	"golang-server/internal/config"
 	"log"
 	"os"
@@ -102,8 +103,10 @@ func ExecuteInitScripts(db *sql.DB, configuration *config.Config) error {
 	}
 
 	if count == 0 {
-		if err := insertWallet(db); err != nil {
-			return fmt.Errorf("failed to insert wallet: %w", err)
+		for range 10 {
+			if err := insertWallet(uuid.New(), db); err != nil {
+				return fmt.Errorf("failed to insert wallet: %w", err)
+			}
 		}
 	}
 	return nil
@@ -117,11 +120,15 @@ func ExecuteInitScripts(db *sql.DB, configuration *config.Config) error {
 //
 // Возвращает:
 //   - error: ошибку при вставке данных.
-func insertWallet(db *sql.DB) error {
-	_, err := db.Exec("INSERT INTO wallets (id, balance) VALUES (1, 100)")
+func insertWallet(id uuid.UUID, db *sql.DB) error {
+	const initialBalance = 100.0
+	_, err := db.Exec(
+		"INSERT INTO wallets (id, balance, date_update) VALUES ($1, $2, NOW())",
+		id, initialBalance,
+	)
 	if err != nil {
 		return err
 	}
-	log.Println("Inserted default wallet")
+	log.Println("Inserted default wallet:", id)
 	return nil
 }

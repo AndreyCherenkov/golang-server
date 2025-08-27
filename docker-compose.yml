@@ -10,7 +10,12 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5431:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wallet-db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   goserver:
     image: goserver:latest
@@ -26,4 +31,5 @@ services:
       - ./config:/config
       - ./migration:/app/migration
     depends_on:
-      - db
+      db:
+        condition: service_healthy
