@@ -10,11 +10,10 @@ import (
 
 // HTTPError представляет ошибку HTTP с кодом и сообщением.
 type HTTPError struct {
-	Status  int    `json:"-"`     // HTTP статус-код, не включается в JSON
-	Message string `json:"error"` // Сообщение ошибки
+	Status  int    `json:"-"`
+	Message string `json:"error"`
 }
 
-// Error реализует интерфейс error.
 func (e *HTTPError) Error() string {
 	return e.Message
 }

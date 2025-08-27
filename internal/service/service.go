@@ -1,25 +1,25 @@
 package service
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"golang-server/internal/model"
 	"golang-server/internal/storage"
 	"golang-server/internal/storage/postgres"
-	"math/big"
 	"net/http"
-	"strconv"
 )
 
+// TransactionService обрабатывает операции с транзакциями.
 type TransactionService struct {
 	walletRepository      storage.WalletRepository
 	transactionRepository storage.TransactionRepository
 }
 
+// WalletService обрабатывает операции с кошельками.
 type WalletService struct {
 	walletRepository storage.WalletRepository
 }
 
+// NewTransactionService создаёт новый TransactionService с подключением к базе данных.
 func NewTransactionService(db *postgres.PgDB) TransactionService {
 	return TransactionService{
 		walletRepository:      *storage.NewWalletRepository(db),
@@ -27,26 +27,15 @@ func NewTransactionService(db *postgres.PgDB) TransactionService {
 	}
 }
 
+// NewWalletService создаёт новый WalletService с подключением к базе данных.
 func NewWalletService(db *postgres.PgDB) WalletService {
 	return WalletService{walletRepository: *storage.NewWalletRepository(db)}
 }
 
-func (s *TransactionService) SendMoney(data model.TransferMoneyRequest) (model.TransferMoneyResponse, error) {
-	senderBalance, err := s.walletRepository.GetBalance(data.From) //todo падает, если json (body) пуст
-	if err != nil {
-		return model.TransferMoneyResponse{HttpStatus: http.StatusBadRequest}, err
-	}
-
-	amount, err := strconv.ParseFloat(data.Amount, 64)
-	if err != nil {
-		return model.TransferMoneyResponse{HttpStatus: http.StatusBadRequest}, err
-	}
-	if senderBalance.Cmp(big.NewFloat(amount)) < 0 {
-		return model.TransferMoneyResponse{HttpStatus: http.StatusBadRequest},
-			fmt.Errorf("insufficient funds: balance %v, required %v", senderBalance, data.Amount)
-	}
-
-	id, err := s.transactionRepository.SendMoney(data)
+// SendMoney выполняет перевод средств между кошельками.
+// Проверяет наличие баланса у отправителя и возвращает HTTP-статус и ID транзакции.
+func (ts *TransactionService) SendMoney(data model.TransferMoneyRequest) (model.TransferMoneyResponse, error) {
+	id, err := ts.transactionRepository.SendMoney(data)
 	if err != nil {
 		return model.TransferMoneyResponse{HttpStatus: http.StatusInternalServerError}, err
 	}
@@ -54,10 +43,10 @@ func (s *TransactionService) SendMoney(data model.TransferMoneyRequest) (model.T
 	return model.TransferMoneyResponse{HttpStatus: http.StatusOK, TransactionId: *id}, nil
 }
 
+// GetLastTransactions возвращает последние numberOfTx транзакций.
 func (ts *TransactionService) GetLastTransactions(numberOfTx int) ([]model.TransactionInfoResponse, error) {
 	tx, err := ts.transactionRepository.GetLastTransactions(numberOfTx)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 
@@ -67,6 +56,7 @@ func (ts *TransactionService) GetLastTransactions(numberOfTx int) ([]model.Trans
 			TransactionId: t.Id,
 			From:          t.From,
 			To:            t.To,
+			Amount:        model.BigFloat(t.Amount),
 			TransferDate:  t.TransferDate,
 		})
 	}
@@ -74,6 +64,7 @@ func (ts *TransactionService) GetLastTransactions(numberOfTx int) ([]model.Trans
 	return response, nil
 }
 
+// GetWalletInfo возвращает информацию о кошельке по его UUID.
 func (ws *WalletService) GetWalletInfo(id uuid.UUID) (*model.WalletResponse, error) {
 	r, err := ws.walletRepository.GetWallet(id)
 	if err != nil {

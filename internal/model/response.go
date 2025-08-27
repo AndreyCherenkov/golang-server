@@ -17,6 +17,7 @@ type TransactionInfoResponse struct {
 	TransactionId uuid.UUID `json:"transactionId"`
 	From          uuid.UUID `json:"from"`
 	To            uuid.UUID `json:"to"`
+	Amount        BigFloat  `json:"amount"`
 	TransferDate  time.Time `json:"transferDate"`
 }
 

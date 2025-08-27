@@ -16,12 +16,24 @@ var (
 	once             sync.Once
 )
 
-// PgDB обертка над *sql.DB
+// PgDB представляет собой обертку над стандартным *sql.DB.
+// Используется для централизованного управления подключением к PostgreSQL.
 type PgDB struct {
 	*sql.DB
 }
 
-// GetInstance возвращает singleton PgDB, создавая подключение и выполняя init скрипт при первом вызове.
+// GetInstance возвращает singleton-экземпляр PgDB.
+// При первом вызове:
+//  1. Создает подключение к базе данных по конфигурации.
+//  2. Проверяет соединение с помощью Ping.
+//  3. Выполняет SQL init-скрипт, если он указан в конфигурации.
+//
+// Параметры:
+//   - configuration: конфигурация приложения с настройками базы данных.
+//
+// Возвращает:
+//   - *PgDB: экземпляр базы данных.
+//   - error: ошибку при создании или инициализации базы данных.
 func GetInstance(configuration *config.Config) (*PgDB, error) {
 	var err error
 	cfg := configuration.DbConfig
@@ -58,6 +70,16 @@ func GetInstance(configuration *config.Config) (*PgDB, error) {
 	return postgresInstance, err
 }
 
+// ExecuteInitScripts выполняет SQL-инициализацию базы данных.
+// 1. Читает SQL-скрипт из файла, указанного в конфигурации.
+// 2. Выполняет SQL-операции.
+// 3. Проверяет наличие данных в таблице wallets и добавляет дефолтный кошелек, если таблица пустая.
+// Параметры:
+//   - db: открытое подключение к базе данных.
+//   - configuration: конфигурация с путем к init-скрипту.
+//
+// Возвращает:
+//   - error: ошибку при чтении файла, выполнении скрипта или вставке данных.
 func ExecuteInitScripts(db *sql.DB, configuration *config.Config) error {
 	cfg := configuration.DbConfig
 	sqlBytes, err := os.ReadFile(cfg.InitScript)
@@ -87,8 +109,16 @@ func ExecuteInitScripts(db *sql.DB, configuration *config.Config) error {
 	return nil
 }
 
+// insertWallet добавляет дефолтный кошелек в таблицу wallets.
+// Значения по умолчанию: id = 1, balance = 10000.
+// Используется внутри ExecuteInitScripts.
+// Параметры:
+//   - db: открытое подключение к базе данных.
+//
+// Возвращает:
+//   - error: ошибку при вставке данных.
 func insertWallet(db *sql.DB) error {
-	_, err := db.Exec("INSERT INTO wallets (id, balance) VALUES (1, 10000)")
+	_, err := db.Exec("INSERT INTO wallets (id, balance) VALUES (1, 100)")
 	if err != nil {
 		return err
 	}

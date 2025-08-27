@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"golang-server/internal/api"
 	"golang-server/internal/config"
@@ -9,10 +8,12 @@ import (
 	"time"
 )
 
+// HTTPServer обёртка над http.Server с удобными методами запуска и завершения.
 type HTTPServer struct {
 	srv *http.Server
 }
 
+// NewHTTPServer создаёт новый HTTPServer с конфигурацией и роутером.
 func NewHTTPServer(cfg config.ServerConfig, router *api.Router) *HTTPServer {
 	return &HTTPServer{
 		srv: &http.Server{
@@ -25,13 +26,11 @@ func NewHTTPServer(cfg config.ServerConfig, router *api.Router) *HTTPServer {
 	}
 }
 
+// ListenAndServe запускает HTTP сервер и возвращает ошибку,
+// если сервер не был корректно остановлен.
 func (s *HTTPServer) ListenAndServe() error {
 	if err := s.srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
-}
-
-func (s *HTTPServer) Shutdown(ctx context.Context) error {
-	return s.srv.Shutdown(ctx)
 }
